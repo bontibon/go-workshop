@@ -2,6 +2,7 @@ package snakes
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -94,6 +95,9 @@ type Server struct {
 
 	clientsUpdated chan struct{}
 
+	// minimum number of clients needed to start a round
+	minClients int
+
 	// Time to wait before and in-between games for clients to reconnect
 	queueWait time.Duration
 
@@ -105,6 +109,8 @@ func NewServer() *Server {
 		clientsUpdated: make(chan struct{}, 1),
 
 		stopped: make(chan struct{}),
+
+		minClients: 2,
 
 		queueWait: time.Second * 1,
 
@@ -149,18 +155,16 @@ func (s *Server) broadcast(msg *Message, clients ...Client) {
 
 // Blocks the caller.
 func (s *Server) Run() {
-	const minClients = 2
-
 	for {
 		// Need at least two players connect to start the game
 		s.clientsMu.Lock()
 		s.clearClientsUpdated()
 
-		if len(s.clients) < minClients {
+		if len(s.clients) < s.minClients {
 			s.broadcast(&Message{
 				WaitingMessage: &WaitingMessage{
 					CurrentPlayers:  len(s.clients),
-					RequiredPlayers: minClients,
+					RequiredPlayers: s.minClients,
 				},
 			}, s.clients...)
 			s.clientsMu.Unlock()
@@ -187,7 +191,7 @@ func (s *Server) Run() {
 		}
 
 		s.clientsMu.Lock()
-		if len(s.clients) < minClients {
+		if len(s.clients) < s.minClients {
 			s.clientsMu.Unlock()
 			continue
 		}
@@ -209,6 +213,13 @@ func (s *Server) Run() {
 		}, roundClients...)
 
 		// TODO: "randomly" spawn food (would be cool if this was deterministic)
+
+		// Shuffle clients so no one is consistently starting from the same location
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i := 0; i < len(roundClients); i++ {
+			idx := rng.Intn(len(roundClients))
+			roundClients[i], roundClients[idx] = roundClients[idx], roundClients[i]
+		}
 
 		directions := make([]Direction, len(roundClients))
 		ticker := time.NewTicker(s.tickInterval)
@@ -251,6 +262,14 @@ func (s *Server) AddClient(c Client) error {
 			return errors.New("duplicate client ID")
 		}
 	}
+
+	// send message in case we're in the middle of a round
+	c.SendMessage(&Message{
+		WaitingMessage: &WaitingMessage{
+			CurrentPlayers:  1,
+			RequiredPlayers: s.minClients,
+		},
+	})
 
 	s.clients = append(s.clients, c)
 	s.signalClientsUpdated()

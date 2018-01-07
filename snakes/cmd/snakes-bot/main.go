@@ -58,28 +58,7 @@ func main() {
 			log.Printf("Round is over: %v", (*msg.RoundOverMessage).Winner)
 		default:
 			log.Printf("unknown message")
-			continue
 		}
-
-		/*
-			log.Println("Waiting for the next round")
-			round := conn.NextRound()
-			if round == nil {
-				break
-			}
-
-			log.Println(" Round starting")
-
-			for turn := range round.C {
-
-			}
-
-			if winner := round.Winner(); winner != "" {
-				log.Printf(" Round finished, and %s won!", winner)
-			} else {
-				log.Println(" Round finished without a winner")
-			}
-		*/
 	}
 	log.Println("Disonnected")
 }

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>snakes viewer</title>
+    <meta charset="utf-8">
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="board" width="200" height="200"></canvas>
+    <script type="text/javascript">
+        'use strict';
+
+        var board = document.getElementById('board');
+        var ctx = board.getContext("2d");
+
+        var lastMessage = null;
+        var playerNames = null;
+
+        var renderFullWidthText = function(text, w, h) {
+            ctx.font = '16px sans-serif';
+            var size = ctx.measureText(text);
+            var scale = Math.min(
+                w / size.width,
+                h / 16.
+            );
+            ctx.font = Math.round(scale * 16) + 'px sans-serif';
+            ctx.fillText(text, w / 2, h / 2);
+        };
+
+        var renderSnakeBG = function(w, h) {
+            ctx.fillStyle = '#f0ffe1';
+            renderFullWidthText('🐍', w, h);
+        };
+
+        var renderBoard = function() {
+            var w = window.innerWidth;
+            var h = window.innerHeight;
+
+            ctx.canvas.width = w;
+            ctx.canvas.height = h;
+
+            var msg = lastMessage;
+            if (msg === null) {
+                ctx.fillStyle = '#e2e2e2';
+                ctx.fillRect(0, 0, w, h);
+                return;
+            }
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (typeof msg.waiting === 'object' && msg.waiting !== null) {
+                // Waiting for round to start
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                renderSnakeBG(w, h);
+                ctx.fillStyle = '#000000';
+                renderFullWidthText('Waiting (' + msg.waiting.current_players + '/' + msg.waiting.required_players + ')', w, h);
+            } else if (typeof msg.round_preparation === 'object' && msg.round_preparation !== null) {
+                // Round is starting soon
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                renderSnakeBG(w, h);
+                ctx.fillStyle = '#000000';
+                renderFullWidthText('Round starting soon', w, h);
+            } else if (typeof msg.round_state === 'object' && msg.round_state !== null) {
+                // Game round update
+                ctx.fillStyle = '#e5e5e5';
+                ctx.fillRect(0, 0, w, h);
+
+                var state = msg.round_state;
+
+                var blockSize = Math.min(
+                    w / state.width,
+                    h / state.height
+                );
+                var offsetX = (w - blockSize*state.width) / 2;
+                var offsetY = (h - blockSize*state.height) / 2;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(offsetX, offsetY, blockSize * state.width, blockSize * state.height);
+
+                var players = state.players;
+                for (var i = 0; i < players.length; i++) {
+                    var player = players[i];
+                    var pieces = player.pieces;
+                    for (var j = 0; j < pieces.length; j++) {
+                        var p = pieces[j];
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = blockSize / 15.;
+                        ctx.strokeRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
+
+                        if (j === 0) {
+                            var name = Array.from(player.name);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = blockSize + 'px sans-serif';
+                            ctx.fillText(name[0], offsetX + p.x * blockSize + blockSize / 2, offsetY + p.y * blockSize + blockSize / 2, blockSize);
+                        }
+                    }
+                }
+            } else if (typeof msg.round_over === 'object' && msg.round_over !== null) {
+                // Round is over
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                renderSnakeBG(w, h);
+                var text;
+                if (typeof msg.round_over.winner !== 'number') {
+                    text = 'Round over, no winner!'
+                } else {
+                    var playerName = 'Player #' + msg.round_over.winner;
+                    if (Array.isArray(playerNames) && msg.round_over.winner >= 0 && msg.round_over.winner < playerNames.length) {
+                        playerName = playerNames[msg.round_over.winner];
+                    }
+                    text = playerName + ' is the winner!';
+                }
+                ctx.fillStyle = '#000000';
+                renderFullWidthText(text, w, h);
+            } else {
+                // Unknown
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                console.error('Unknown message', msg);
+            }
+        };
+
+        var wsURL = 'ws://' + window.location.host + '/viewer/ws';
+        var ws = new WebSocket(wsURL);
+        ws.addEventListener('message', function(ev) {
+            var msg = JSON.parse(ev.data);
+            lastMessage = msg;
+            if (typeof msg.round_state === 'object' && msg.round_state !== null) {
+                playerNames = msg.round_state.players.map(function (obj) {
+                    return obj.name;
+                });
+            }
+            console.log(msg);
+            window.requestAnimationFrame(renderBoard);
+        });
+        ws.addEventListener('close', function(ev) {
+            console.log(ev);
+            board.parentNode.removeChild(board);
+            document.body.style.background = '#9f0000';
+        });
+
+        window.addEventListener("resize", function() {
+            window.requestAnimationFrame(renderBoard);
+        });
+        window.requestAnimationFrame(renderBoard);
+    </script>
+</body>
+</html>

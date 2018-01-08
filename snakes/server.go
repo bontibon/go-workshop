@@ -207,6 +207,13 @@ func (s *Server) Run() {
 		copy(roundClients, s.clients)
 		s.clientsMu.Unlock()
 
+		// Shuffle clients so no one is consistently starting from the same location
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i := 0; i < len(roundClients); i++ {
+			idx := rng.Intn(len(roundClients))
+			roundClients[i], roundClients[idx] = roundClients[idx], roundClients[i]
+		}
+
 		const size = 50 // TODO: base off of client count
 
 		cfg := StateConfig{
@@ -219,13 +226,6 @@ func (s *Server) Run() {
 		s.broadcast(&Message{
 			RoundStateMessage: roundStateMessageFromState(roundClients, gameState),
 		}, roundClients...)
-
-		// Shuffle clients so no one is consistently starting from the same location
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		for i := 0; i < len(roundClients); i++ {
-			idx := rng.Intn(len(roundClients))
-			roundClients[i], roundClients[idx] = roundClients[idx], roundClients[i]
-		}
 
 		directions := make([]Direction, len(roundClients))
 		ticker := time.NewTicker(s.tickInterval)

@@ -89,20 +89,22 @@
                 for (var i = 0; i < players.length; i++) {
                     var player = players[i];
                     var pieces = player.pieces;
-                    for (var j = 0; j < pieces.length; j++) {
-                        var p = pieces[j];
-                        ctx.fillStyle = '#000000';
-                        ctx.fillRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = blockSize / 15.;
-                        ctx.strokeRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
+                    if (Array.isArray(pieces)) {
+		                for (var j = 0; j < pieces.length; j++) {
+		                    var p = pieces[j];
+		                    ctx.fillStyle = '#000000';
+		                    ctx.fillRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
+		                    ctx.strokeStyle = '#ffffff';
+		                    ctx.lineWidth = blockSize / 15.;
+		                    ctx.strokeRect(offsetX + p.x * blockSize, offsetY + p.y * blockSize, blockSize, blockSize);
 
-                        if (j === 0) {
-                            var name = Array.from(player.name);
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = blockSize + 'px sans-serif';
-                            ctx.fillText(name[0], offsetX + p.x * blockSize + blockSize / 2, offsetY + p.y * blockSize + blockSize / 2, blockSize);
-                        }
+		                    if (j === 0) {
+		                        var name = Array.from(player.name);
+		                        ctx.fillStyle = '#ffffff';
+		                        ctx.font = blockSize + 'px sans-serif';
+		                        ctx.fillText(name[0], offsetX + p.x * blockSize + blockSize / 2, offsetY + p.y * blockSize + blockSize / 2, blockSize);
+		                    }
+		                }
                     }
                 }
 

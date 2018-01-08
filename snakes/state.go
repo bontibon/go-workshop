@@ -2,7 +2,10 @@ package snakes
 
 import (
 	"encoding"
+	"encoding/binary"
 	"errors"
+	"hash/crc64"
+	"math/rand"
 )
 
 // Direction is a direction in which a snake can be moved.
@@ -63,7 +66,7 @@ func (l Location) IsInsideBounds(width, height int) bool {
 }
 
 // NextLocation returns the next location moving in the given direction.
-// This function panics on an invalid direction.
+// The function panics on an invalid direction.
 func NextLocation(base Location, direction Direction) Location {
 	switch direction {
 	case DirectionNorth:
@@ -104,6 +107,10 @@ func (s *Snake) HasPieceAt(x, y int) bool {
 	return false
 }
 
+type Apple struct {
+	Location `json:"location"`
+}
+
 type StateConfig struct {
 	Width, Height      int
 	SnakeCount         int
@@ -113,7 +120,7 @@ type StateConfig struct {
 type State struct {
 	Width, Height int
 	Snakes        []*Snake
-	// Apples        []*Apple
+	Apple         *Apple
 }
 
 func NewState(cfg StateConfig) *State {
@@ -148,7 +155,47 @@ func NewState(cfg StateConfig) *State {
 			Y: yLine,
 		}
 	}
+
+	s.Apple = &Apple{
+		Location: GenerateAppleLocation(s.Width, s.Height, s.Snakes),
+	}
+
 	return s
+}
+
+func GenerateAppleLocation(width, height int, snakes []*Snake) Location {
+	h := crc64.New(crc64.MakeTable(crc64.ISO))
+
+	for _, snake := range snakes {
+		var b [16]byte
+		var x, y uint64
+		if snake.Alive {
+			x, y = uint64(snake.Pieces[0].X), uint64(snake.Pieces[0].Y)
+		}
+		binary.BigEndian.PutUint64(b[:8], x)
+		binary.BigEndian.PutUint64(b[8:], y)
+	}
+
+	rng := rand.New(rand.NewSource(int64(h.Sum64())))
+	for {
+		x := rng.Intn(width)
+		y := rng.Intn(height)
+
+		ok := true
+		for _, snake := range snakes {
+			if snake.HasPieceAt(x, y) {
+				ok = false
+				break
+			}
+		}
+
+		if ok {
+			return Location{
+				X: x,
+				Y: y,
+			}
+		}
+	}
 }
 
 func (s *State) clone() (newState *State, maxLength int) {
@@ -157,6 +204,12 @@ func (s *State) clone() (newState *State, maxLength int) {
 		Height: s.Height,
 
 		Snakes: make([]*Snake, len(s.Snakes)),
+	}
+
+	if s.Apple != nil {
+		newState.Apple = &Apple{
+			Location: s.Apple.Location,
+		}
 	}
 
 	for i, snake := range s.Snakes {
@@ -184,10 +237,16 @@ func (s *State) Next(snakeDirections []Direction) *State {
 	tails := make(map[Location]int, len(next.Snakes)*maxLength)
 	headLocations := make(map[LocationPair]int, len(next.Snakes))
 	nextHeadLocations := make(map[Location]int, len(next.Snakes))
+	repositionApple := false
 
 	for snakeNo, snake := range next.Snakes {
 		if !snake.Alive {
 			continue
+		}
+		nextLocation := NextLocation(snake.Pieces[0], snakeDirections[snakeNo])
+		if nextLocation == next.Apple.Location {
+			snake.Length++
+			repositionApple = true
 		}
 		if snake.Length > len(snake.Pieces) {
 			snake.Pieces = append(snake.Pieces, Location{})
@@ -196,7 +255,6 @@ func (s *State) Next(snakeDirections []Direction) *State {
 			snake.Pieces[i] = snake.Pieces[i-1]
 			tails[snake.Pieces[i]] = snakeNo
 		}
-		nextLocation := NextLocation(snake.Pieces[0], snakeDirections[snakeNo])
 		locPair := LocationPair{snake.Pieces[0], nextLocation}
 		snake.Pieces[0] = nextLocation
 		if !nextLocation.IsInsideBounds(next.Width, next.Height) {
@@ -221,6 +279,10 @@ func (s *State) Next(snakeDirections []Direction) *State {
 		if _, ok := tails[loc]; ok {
 			next.Snakes[snakeNo].Alive = false
 		}
+	}
+
+	if repositionApple {
+		next.Apple.Location = GenerateAppleLocation(next.Width, next.Height, next.Snakes)
 	}
 
 	return next

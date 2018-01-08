@@ -26,6 +26,8 @@ type RoundStateMessage struct {
 	Height int `json:"height"`
 
 	Players []*RoundStateMessagePlayer `json:"players"`
+
+	Apple *Apple `json:"apple"`
 }
 
 func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
@@ -45,6 +47,12 @@ func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
 			copy(p.Pieces, snake.Pieces)
 		}
 		m.Players[i] = p
+	}
+
+	if s.Apple != nil {
+		m.Apple = &Apple{
+			Location: s.Apple.Location,
+		}
 	}
 
 	return m
@@ -211,8 +219,6 @@ func (s *Server) Run() {
 		s.broadcast(&Message{
 			RoundStateMessage: roundStateMessageFromState(roundClients, gameState),
 		}, roundClients...)
-
-		// TODO: "randomly" spawn food (would be cool if this was deterministic)
 
 		// Shuffle clients so no one is consistently starting from the same location
 		rng := rand.New(rand.NewSource(time.Now().UnixNano()))

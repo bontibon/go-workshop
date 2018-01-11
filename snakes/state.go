@@ -174,6 +174,7 @@ func GenerateAppleLocation(width, height int, snakes []*Snake) Location {
 		}
 		binary.BigEndian.PutUint64(b[:8], x)
 		binary.BigEndian.PutUint64(b[8:], y)
+		h.Write(b[:])
 	}
 
 	rng := rand.New(rand.NewSource(int64(h.Sum64())))

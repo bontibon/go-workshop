@@ -126,7 +126,7 @@ type StateConfig struct {
 type State struct {
 	Width, Height int
 	Snakes        []*Snake
-	Apple         *Apple
+	Apple         Apple
 }
 
 // NewState returns a new state based on the given initial configuration.
@@ -165,7 +165,7 @@ func NewState(cfg StateConfig) *State {
 		}
 	}
 
-	s.Apple = &Apple{
+	s.Apple = Apple{
 		Location: GenerateAppleLocation(s.Width, s.Height, s.Snakes),
 	}
 
@@ -217,12 +217,8 @@ func (s *State) clone() (newState *State, maxLength int) {
 		Height: s.Height,
 
 		Snakes: make([]*Snake, len(s.Snakes)),
-	}
 
-	if s.Apple != nil {
-		newState.Apple = &Apple{
-			Location: s.Apple.Location,
-		}
+		Apple: s.Apple,
 	}
 
 	for i, snake := range s.Snakes {

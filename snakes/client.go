@@ -56,7 +56,7 @@ type RoundStateMessage struct {
 
 	Players []*RoundStateMessagePlayer `json:"players"`
 
-	Apple *Apple `json:"apple"`
+	Apple Apple `json:"apple"`
 }
 
 // RoundStateMessagePlayer is a player in the round.
@@ -73,6 +73,8 @@ func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
 		Height: s.Height,
 
 		Players: make([]*RoundStateMessagePlayer, len(clients)),
+
+		Apple: s.Apple,
 	}
 
 	for i, client := range clients {
@@ -84,12 +86,6 @@ func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
 			copy(p.Pieces, snake.Pieces)
 		}
 		m.Players[i] = p
-	}
-
-	if s.Apple != nil {
-		m.Apple = &Apple{
-			Location: s.Apple.Location,
-		}
 	}
 
 	return m

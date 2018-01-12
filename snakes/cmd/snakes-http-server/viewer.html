@@ -175,12 +175,10 @@
                     }
                 }
 
-                if (state.apple !== null) {
-                    var loc = state.apple.location;
-                    ctx.fillStyle = '#f11521';
-                    ctx.font = blockSize + 'px sans-serif';
-                    ctx.fillText('🍎', offsetX + loc.x * blockSize + blockSize / 2, offsetY + loc.y * blockSize + blockSize / 2, blockSize);
-                }
+                var loc = state.apple.location;
+                ctx.fillStyle = '#f11521';
+                ctx.font = blockSize + 'px sans-serif';
+                ctx.fillText('🍎', offsetX + loc.x * blockSize + blockSize / 2, offsetY + loc.y * blockSize + blockSize / 2, blockSize);
             } else if (typeof msg.round_over === 'object' && msg.round_over !== null) {
                 // Round is over
                 ctx.fillStyle = '#ffffff';

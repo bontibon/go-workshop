@@ -6,16 +6,28 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/bontibon/refresh-go-workshop/snakes"
 	"github.com/gorilla/websocket"
 )
 
 func main() {
+	minimumClients := flag.Int("minimum-clients", 2, "minimum number of clients needed to start a round")
+	preRoundWait := flag.Duration("pre-round-wait", time.Second*2, "pre round wait time")
+	roundTick := flag.Duration("round-tick", time.Millisecond*200, "round tick duration")
+	postRoundWait := flag.Duration("post-round-wait", time.Second*2, "post round wait time")
 	addr := flag.String("addr", "127.0.0.1:8080", "HTTP address to listen on")
 	flag.Parse()
 
-	server := snakes.NewServer()
+	serverConfig := snakes.ServerConfig{
+		MinimumClients: *minimumClients,
+		PreRoundWait:   *preRoundWait,
+		RoundTick:      *roundTick,
+		PostRoundWait:  *postRoundWait,
+	}
+
+	server := snakes.NewServer(serverConfig)
 	go server.Run()
 
 	mux := http.NewServeMux()

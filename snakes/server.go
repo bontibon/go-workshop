@@ -91,6 +91,8 @@ type Client interface {
 }
 
 type Server struct {
+	config ServerConfig
+
 	broadcastMu sync.Mutex
 	viewers     []ViewerClient
 	lastMessage *Message
@@ -102,27 +104,26 @@ type Server struct {
 	stopped   chan struct{}
 
 	clientsUpdated chan struct{}
-
-	// minimum number of clients needed to start a round
-	minClients int
-
-	// Time to wait before and in-between games for clients to reconnect
-	queueWait time.Duration
-
-	tickInterval time.Duration
 }
 
-func NewServer() *Server {
+type ServerConfig struct {
+	// Minimum number of clients needed to start a round.
+	MinimumClients int
+	// Amount of time to wait after enough clients joining and the beginning of
+	// the round.
+	PreRoundWait time.Duration
+	// Amount of time to wait after a round before preparing for another round.
+	PostRoundWait time.Duration
+	// Duration of a round tick. This should be large enough for clients to
+	// receive the current state, process it, then send a response.
+	RoundTick time.Duration
+}
+
+func NewServer(config ServerConfig) *Server {
 	return &Server{
+		config:         config,
 		clientsUpdated: make(chan struct{}, 1),
-
-		stopped: make(chan struct{}),
-
-		minClients: 2,
-
-		queueWait: time.Second * 1,
-
-		tickInterval: time.Millisecond * 250,
+		stopped:        make(chan struct{}),
 	}
 }
 
@@ -168,11 +169,11 @@ func (s *Server) Run() {
 		s.clientsMu.Lock()
 		s.clearClientsUpdated()
 
-		if len(s.clients) < s.minClients {
+		if len(s.clients) < s.config.MinimumClients {
 			s.broadcast(&Message{
 				WaitingMessage: &WaitingMessage{
 					CurrentPlayers:  len(s.clients),
-					RequiredPlayers: s.minClients,
+					RequiredPlayers: s.config.MinimumClients,
 				},
 			}, s.clients...)
 			s.clientsMu.Unlock()
@@ -193,13 +194,14 @@ func (s *Server) Run() {
 		s.clientsMu.Unlock()
 
 		select {
-		case <-time.After(s.queueWait):
+		case <-time.After(s.config.PreRoundWait):
 		case <-s.stopped:
 			break
 		}
 
 		s.clientsMu.Lock()
-		if len(s.clients) < s.minClients {
+		if len(s.clients) < s.config.MinimumClients {
+			// A client left while waiting for the round to begin.
 			s.clientsMu.Unlock()
 			continue
 		}
@@ -228,7 +230,7 @@ func (s *Server) Run() {
 		}, roundClients...)
 
 		directions := make([]Direction, len(roundClients))
-		ticker := time.NewTicker(s.tickInterval)
+		ticker := time.NewTicker(s.config.RoundTick)
 		for {
 			<-ticker.C
 
@@ -250,7 +252,7 @@ func (s *Server) Run() {
 				s.broadcast(&Message{
 					RoundOverMessage: rom,
 				}, roundClients...)
-				time.Sleep(s.queueWait)
+				time.Sleep(s.config.PostRoundWait)
 				break
 			}
 		}
@@ -273,7 +275,7 @@ func (s *Server) AddClient(c Client) error {
 	c.SendMessage(&Message{
 		WaitingMessage: &WaitingMessage{
 			CurrentPlayers:  1,
-			RequiredPlayers: s.minClients,
+			RequiredPlayers: s.config.MinimumClients,
 		},
 	})
 

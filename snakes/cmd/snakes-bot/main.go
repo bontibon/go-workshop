@@ -1,63 +1,50 @@
 package main
 
 import (
-	"flag"
 	"log"
-	"net/http"
-	"os"
 
 	"github.com/bontibon/refresh-go-workshop/snakes"
-	"github.com/gorilla/websocket"
 )
 
-func SendDirection(c *websocket.Conn, direction snakes.Direction) error {
-	msg := snakes.ClientMessage{
-		DirectionClientMessage: &snakes.DirectionClientMessage{
-			Direction: direction,
-		},
-	}
-	return c.WriteJSON(&msg)
-}
-
 func main() {
-	defaultName, _ := os.Hostname()
+	// Server address
+	const addr = "ws://127.0.0.1:8080/ws"
 
-	addr := flag.String("addr", "ws://127.0.0.1:8080/ws", "server address")
-	name := flag.String("name", defaultName, "bot name")
-	flag.Parse()
+	// Bot name
+	// The first character of your name will be displayed on you bot's head.
+	// Emojis are supported! https://emojipedia.org
+	// TODO: change me!
+	const name = "BotName"
 
-	var dialer websocket.Dialer
-
-	headers := make(http.Header)
-	headers.Set("X-Snake-Name", *name)
-
-	conn, _, err := dialer.Dial(*addr, headers)
+	bot, err := snakes.NewWebSocketBot(addr, name)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
+	defer bot.Close()
+	log.Printf("Connected to the server; waiting for a new round")
 
-	log.Println("Connected to the server")
-	for {
-		var msg snakes.Message
-		if err := conn.ReadJSON(&msg); err != nil {
-			log.Printf("read JSON error: %s", err)
-			break
+	for round := range bot.Rounds() {
+		log.Println("New round started")
+
+		for turn := range round.Turns() {
+			//
+			//
+			//
+			// TODO: create your bot logic here!
+			//
+			//
+			// Control your bot with turn.Move. Example:
+			turn.Move(snakes.DirectionEast)
 		}
 
-		switch {
-		case msg.WaitingMessage != nil:
-			log.Printf("Waiting for round to start: %#v\n", *msg.WaitingMessage)
-		case msg.RoundPreparation != nil:
-			log.Printf("Round starting soon")
-		case msg.RoundStateMessage != nil:
-			log.Printf("Round state updated")
-			SendDirection(conn, snakes.DirectionEast)
-		case msg.RoundOverMessage != nil:
-			log.Printf("Round is over: %v", (*msg.RoundOverMessage).Winner)
-		default:
-			log.Printf("unknown message")
+		if winner := round.Winner(); winner != nil {
+			log.Printf("%s won the round\n", *winner)
+		} else {
+			log.Println("Round over, and there was no winner")
 		}
 	}
-	log.Println("Disonnected")
+
+	if err := bot.Err(); err != nil {
+		log.Fatal(err)
+	}
 }

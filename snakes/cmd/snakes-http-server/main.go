@@ -83,10 +83,12 @@ func main() {
 
 		client, err := snakes.NewWebSocketClient(conn, r)
 		if err != nil {
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, err.Error()))
 			log.Printf("could not create conn: %s", err)
 			return
 		}
 		if err := server.AddClient(client); err != nil {
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, err.Error()))
 			log.Printf("could not add client: %s", err)
 			return
 		}

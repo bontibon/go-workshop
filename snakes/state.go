@@ -24,6 +24,7 @@ const (
 	DirectionWest
 )
 
+// MarshalText implements encoding.TextMarshaler.
 func (d Direction) MarshalText() ([]byte, error) {
 	switch d {
 	case DirectionNorth:
@@ -38,6 +39,7 @@ func (d Direction) MarshalText() ([]byte, error) {
 	return nil, errors.New("invalid direction")
 }
 
+// UnmarshalText implements encoding.TextUnmarshaler.
 func (d *Direction) UnmarshalText(b []byte) error {
 	switch string(b) {
 	case "north":
@@ -91,13 +93,14 @@ func (l locationPair) Swap() locationPair {
 	return locationPair{l[1], l[0]}
 }
 
+// Snake represents a snake that contains one or more pieces.
 type Snake struct {
 	Alive  bool
 	Length int
-	// Pieces[0] is the head of the snake
-	Pieces []Location
+	Pieces []Location // Pieces[0] is the head of the snake
 }
 
+// HasPieceAt returns if the snake has a piece at the given coordinates.
 func (s *Snake) HasPieceAt(x, y int) bool {
 	for _, piece := range s.Pieces {
 		if piece.X == x && piece.Y == y {
@@ -107,22 +110,28 @@ func (s *Snake) HasPieceAt(x, y int) bool {
 	return false
 }
 
+// Apple is a game item that cases a snake to grow in length.
 type Apple struct {
 	Location `json:"location"`
 }
 
+// StateConfig is the configuration for creating an initial game state.
 type StateConfig struct {
 	Width, Height      int
 	SnakeCount         int
 	InitialSnakeLength int
 }
 
+// State represents a 2D game area with two or more snakes and a single apple.
 type State struct {
 	Width, Height int
 	Snakes        []*Snake
 	Apple         *Apple
 }
 
+// NewState returns a new state based on the given initial configuration.
+// The function panics if the snake count is less than 2.
+// The function panics if the snake count is greater than the width.
 func NewState(cfg StateConfig) *State {
 	if cfg.SnakeCount < 2 {
 		panic("snakeCount < 2")
@@ -163,6 +172,7 @@ func NewState(cfg StateConfig) *State {
 	return s
 }
 
+// GenerateAppleLocation calculates the location for the apple on the game board.
 func GenerateAppleLocation(width, height int, snakes []*Snake) Location {
 	h := crc64.New(crc64.MakeTable(crc64.ISO))
 
@@ -199,6 +209,8 @@ func GenerateAppleLocation(width, height int, snakes []*Snake) Location {
 	}
 }
 
+// clone returns a deep clone of the state.
+// A new state is returned, along with the length of the longest snake in the arena.
 func (s *State) clone() (newState *State, maxLength int) {
 	newState = &State{
 		Width:  s.Width,
@@ -228,6 +240,11 @@ func (s *State) clone() (newState *State, maxLength int) {
 	return
 }
 
+// Next computes the next iteration of the game state.
+// A newly allocated state is returned; the calling state is not mutated.
+//
+// The function panics if the number of given snake directions is not equal to the number
+// of snakes in the state.
 func (s *State) Next(snakeDirections []Direction) *State {
 	if len(snakeDirections) != len(s.Snakes) {
 		panic("len(snakeDirections) != len(s.Snakes)")
@@ -245,7 +262,7 @@ func (s *State) Next(snakeDirections []Direction) *State {
 			continue
 		}
 		nextLocation := NextLocation(snake.Pieces[0], snakeDirections[snakeNo])
-		if nextLocation == next.Apple.Location {
+		if nextLocation == s.Apple.Location {
 			snake.Length++
 			repositionApple = true
 		}
@@ -289,7 +306,7 @@ func (s *State) Next(snakeDirections []Direction) *State {
 	return next
 }
 
-// IsComplete returns if the game is completed and which snake number is the winner.
+// IsCompleted returns if the game is completed and which snake number is the winner.
 // -1 is returned as the snake winner if no snakes are left alive.
 func (s *State) IsCompleted() (bool, int) {
 	alive := -1

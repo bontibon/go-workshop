@@ -3,7 +3,6 @@ package snakes
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"sync/atomic"
 	"unicode/utf8"
@@ -11,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WebSocketClient is a WebSocket based Client.
 type WebSocketClient struct {
 	c    *websocket.Conn
 	name string
@@ -33,6 +33,10 @@ func validBotName(name string) bool {
 	return true
 }
 
+// NewWebSocketClient creates a new WebSocketClient from the given WebSocket connection.
+//
+// nil and an error is returned if the HTTP request does not contain
+// a valid name in the X-Snake-Name header.
 func NewWebSocketClient(conn *websocket.Conn, r *http.Request) (*WebSocketClient, error) {
 	snakeName := r.Header.Get("X-Snake-Name")
 	if !validBotName(snakeName) {
@@ -47,15 +51,17 @@ func NewWebSocketClient(conn *websocket.Conn, r *http.Request) (*WebSocketClient
 	return c, nil
 }
 
+// Run continuously reads client messages from the WebSocket connection.
+// An error is returned on the first error reading from the connection.
 func (s *WebSocketClient) Run() error {
 	for {
 		var msg ClientMessage
 		err := s.c.ReadJSON(&msg)
 		if err != nil {
-			if err != io.ErrUnexpectedEOF {
-				log.Println(err)
+			if err == io.ErrUnexpectedEOF {
+				return nil
 			}
-			break
+			return err
 		}
 
 		switch {
@@ -69,10 +75,14 @@ func (s *WebSocketClient) Run() error {
 	return nil
 }
 
+// ID returns the client's name as provided by the X-Snake-Name header
+// when the WebSocket connection was established.
 func (s *WebSocketClient) ID() string {
 	return s.name
 }
 
+// Direction returns the direction in which the client wishes to move their
+// snake.
 func (s *WebSocketClient) Direction() Direction {
 	return Direction(atomic.LoadInt32(&s.direction))
 }

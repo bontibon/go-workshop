@@ -8,88 +8,21 @@ import (
 	"time"
 )
 
-type WaitingMessage struct {
-	CurrentPlayers  int `json:"current_players"`
-	RequiredPlayers int `json:"required_players"`
-}
-
-type RoundPreparationMessage struct {
-}
-
-type RoundStateMessagePlayer struct {
-	Name   string     `json:"name"`
-	Pieces []Location `json:"pieces"`
-}
-
-type RoundStateMessage struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
-
-	Players []*RoundStateMessagePlayer `json:"players"`
-
-	Apple *Apple `json:"apple"`
-}
-
-func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
-	m := &RoundStateMessage{
-		Width:  s.Width,
-		Height: s.Height,
-
-		Players: make([]*RoundStateMessagePlayer, len(clients)),
-	}
-
-	for i, client := range clients {
-		p := &RoundStateMessagePlayer{
-			Name: client.ID(),
-		}
-		if snake := s.Snakes[i]; snake.Alive {
-			p.Pieces = make([]Location, len(snake.Pieces))
-			copy(p.Pieces, snake.Pieces)
-		}
-		m.Players[i] = p
-	}
-
-	if s.Apple != nil {
-		m.Apple = &Apple{
-			Location: s.Apple.Location,
-		}
-	}
-
-	return m
-}
-
-type RoundOverMessage struct {
-	Winner *int `json:"winner"`
-}
-
-type Message struct {
-	// Waiting for enough players to connect
-	WaitingMessage *WaitingMessage `json:"waiting,omitempty"`
-	// Round preparation
-	RoundPreparation *RoundPreparationMessage `json:"round_preparation,omitempty"`
-	// Complete state of the game round
-	RoundStateMessage *RoundStateMessage `json:"round_state,omitempty"`
-	// Round has been completed, with an optional winner
-	RoundOverMessage *RoundOverMessage `json:"round_over,omitempty"`
-}
-
-type ViewerClient interface {
-	// SendMessage sends the message to the client.
-	SendMessage(*Message) error
-}
-
-type Client interface {
-	// ID returns a unique ID for the client. This ID must be unique
-	// between all Client instances that are added to a server.
-	ID() string
-
-	// Direction returns the direction in which the client wishes to go.
-	// This function must return quickly, or else the server timing.
-	Direction() Direction
-
-	ViewerClient
-}
-
+// Server is a snakes game server implementation.
+//
+// The server manages the game lifecycle from client queuing to broadcasting game state
+// to connected clients.
+//
+// Clients are added to the server to take part in a game round.
+// The servers waits until ServerConfig.MinimumClients are added, then waits
+// ServerConfig.PreRoundWait, then, if ServerConfig.MinimumClients are still connected,
+// starts the round.
+//
+// The server polls the round clients for their direction every ServerConfig.RoundTick,
+// calculates the next game state, then broadcasts the state.
+//
+// Once the round is over, the winner (or lack of winner) is broadcast, the server waits
+// ServerConfig.PostRoundWait, then the queue process is restarted.
 type Server struct {
 	config ServerConfig
 
@@ -106,6 +39,7 @@ type Server struct {
 	clientsUpdated chan struct{}
 }
 
+// ServerConfig contains configuration variables for Server.
 type ServerConfig struct {
 	// Minimum number of clients needed to start a round.
 	MinimumClients int
@@ -119,6 +53,7 @@ type ServerConfig struct {
 	RoundTick time.Duration
 }
 
+// NewServer creates a new server with the given configuration.
 func NewServer(config ServerConfig) *Server {
 	return &Server{
 		config:         config,
@@ -141,12 +76,14 @@ func (s *Server) clearClientsUpdated() {
 	}
 }
 
+// Stop requests that the server stop after the current round.
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapUint32(&s.isStopped, 0, 1) {
 		close(s.stopped)
 	}
 }
 
+// broadcast broadcasts msg too all of the server's viewers and the given clients.
 func (s *Server) broadcast(msg *Message, clients ...Client) {
 	s.broadcastMu.Lock()
 	defer s.broadcastMu.Unlock()
@@ -162,7 +99,8 @@ func (s *Server) broadcast(msg *Message, clients ...Client) {
 	}
 }
 
-// Blocks the caller.
+// Run runs the game loop.
+// The function returns after s.Stop is called.
 func (s *Server) Run() {
 	for {
 		// Need at least two players connect to start the game
@@ -260,6 +198,8 @@ func (s *Server) Run() {
 	}
 }
 
+// AddClient adds the client to the server.
+// An error is returned if the client's name is not unique to the server.
 func (s *Server) AddClient(c Client) error {
 	s.clientsMu.Lock()
 	defer s.clientsMu.Unlock()
@@ -284,6 +224,8 @@ func (s *Server) AddClient(c Client) error {
 	return nil
 }
 
+// RemoveClient removes the client from the server.
+// The client is not removed from the active round.
 func (s *Server) RemoveClient(c Client) bool {
 	s.clientsMu.Lock()
 	defer s.clientsMu.Unlock()
@@ -300,6 +242,7 @@ func (s *Server) RemoveClient(c Client) bool {
 	return false
 }
 
+// AddViewer adds a viewer client to the server.
 func (s *Server) AddViewer(v ViewerClient) error {
 	s.broadcastMu.Lock()
 	defer s.broadcastMu.Unlock()
@@ -309,6 +252,7 @@ func (s *Server) AddViewer(v ViewerClient) error {
 	return nil
 }
 
+// RemoveViewer removes the given viewer from the server.
 func (s *Server) RemoveViewer(v ViewerClient) error {
 	s.broadcastMu.Lock()
 	defer s.broadcastMu.Unlock()

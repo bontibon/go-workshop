@@ -6,18 +6,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WebSocketViewer is a WebSocket based ViewerClient implementation.
 type WebSocketViewer struct {
 	c *websocket.Conn
 }
 
-func NewWebSocketViewer(conn *websocket.Conn) (*WebSocketViewer, error) {
+// NewWebSocketViewer creates a new WebSocketViewer around the given
+// WebSocket connection.
+func NewWebSocketViewer(conn *websocket.Conn) *WebSocketViewer {
 	return &WebSocketViewer{
 		c: conn,
-	}, nil
+	}
 }
 
 var _ ViewerClient = (*WebSocketViewer)(nil)
 
+// Run keeps the underlying WebSocket connection alive.
+// It returns when the underlying WebSocket connection closes.
 func (v *WebSocketViewer) Run() error {
 	for {
 		var val interface{}

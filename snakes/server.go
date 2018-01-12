@@ -184,8 +184,8 @@ func (s *Server) Run() {
 			if completed, winner := gameState.IsCompleted(); completed {
 				rom := &RoundOverMessage{}
 				if winner >= 0 {
-					rom.Winner = new(int)
-					*rom.Winner = winner
+					rom.Winner = new(string)
+					*rom.Winner = roundClients[winner].ID()
 				}
 				s.broadcast(&Message{
 					RoundOverMessage: rom,

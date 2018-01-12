@@ -73,7 +73,6 @@
         var ctx = board.getContext("2d");
 
         var lastMessage = null;
-        var playerNames = null;
 
         var renderFullWidthText = function(text, w, h) {
             ctx.font = '16px sans-serif';
@@ -188,14 +187,10 @@
                 ctx.fillRect(0, 0, w, h);
                 renderSnakeBG(w, h);
                 var text;
-                if (typeof msg.round_over.winner !== 'number') {
-                    text = 'Round over, no winner!'
+                if (typeof msg.round_over.winner === 'string') {
+                    text = msg.round_over.winner + ' is the winner!';
                 } else {
-                    var playerName = 'Player #' + msg.round_over.winner;
-                    if (Array.isArray(playerNames) && msg.round_over.winner >= 0 && msg.round_over.winner < playerNames.length) {
-                        playerName = playerNames[msg.round_over.winner];
-                    }
-                    text = playerName + ' is the winner!';
+                    text = 'Round over, no winner!';
                 }
                 ctx.fillStyle = '#000000';
                 renderFullWidthText(text, w, h);
@@ -212,12 +207,6 @@
         ws.addEventListener('message', function(ev) {
             var msg = JSON.parse(ev.data);
             lastMessage = msg;
-            if (typeof msg.round_state === 'object' && msg.round_state !== null) {
-                playerNames = msg.round_state.players.map(function (obj) {
-                    return obj.name;
-                });
-            }
-            console.log(msg);
             window.requestAnimationFrame(renderBoard);
         });
         ws.addEventListener('close', function(ev) {

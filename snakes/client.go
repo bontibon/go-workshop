@@ -99,5 +99,5 @@ func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {
 // If there was no winner (e.g. all remaining snakes died at the same time), Winner
 // will be nil.
 type RoundOverMessage struct {
-	Winner *int `json:"winner"`
+	Winner *string `json:"winner"`
 }

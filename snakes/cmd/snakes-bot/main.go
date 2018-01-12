@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/bontibon/refresh-go-workshop/snakes"
+	"github.com/bontibon/go-workshop/snakes"
 )
 
 func main() {

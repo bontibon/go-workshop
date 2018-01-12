@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bontibon/refresh-go-workshop/snakes"
+	"github.com/bontibon/go-workshop/snakes"
 	"github.com/gorilla/websocket"
 )
 
@@ -105,7 +105,7 @@ func main() {
 		}
 
 		w.Header().Set("Content-type", "text/html; charset=utf-8")
-		io.WriteString(w, `<h1>Refresh AV: SNAKES <span style="font-weight: normal">🐍</span></h1><ul><li><a href="/viewer">/viewer</a></li><li><a href="/ws">/ws</a> (client endpoint)</li></ul>`)
+		io.WriteString(w, `<h1>January 2018 Go Workshop <span style="font-weight: normal">🐍</span></h1><ul><li><a href="/viewer">/viewer</a></li><li><a href="/ws">/ws</a> (client endpoint)</li></ul>`)
 	})
 
 	log.Printf("Starting server on %s\n", *addr)

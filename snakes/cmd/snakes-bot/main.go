@@ -7,13 +7,12 @@ import (
 	"os"
 
 	"github.com/bontibon/refresh-go-workshop/snakes"
-	snakeswebsocket "github.com/bontibon/refresh-go-workshop/snakes/websocket"
 	"github.com/gorilla/websocket"
 )
 
 func SendDirection(c *websocket.Conn, direction snakes.Direction) error {
-	msg := snakeswebsocket.ClientMessage{
-		DirectionClientMessage: &snakeswebsocket.DirectionClientMessage{
+	msg := snakes.ClientMessage{
+		DirectionClientMessage: &snakes.DirectionClientMessage{
 			Direction: direction,
 		},
 	}

@@ -1,9 +1,8 @@
-package websocket
+package snakes
 
 import (
 	"io"
 
-	"github.com/bontibon/refresh-go-workshop/snakes"
 	"github.com/gorilla/websocket"
 )
 
@@ -32,6 +31,6 @@ func (v *ViewerConn) Run() error {
 }
 
 // SendMessage sends the message to the client.
-func (v *ViewerConn) SendMessage(msg *snakes.Message) error {
+func (v *ViewerConn) SendMessage(msg *Message) error {
 	return v.c.WriteJSON(msg)
 }

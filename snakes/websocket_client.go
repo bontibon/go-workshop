@@ -1,4 +1,4 @@
-package websocket
+package snakes
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"unicode/utf8"
 
-	"github.com/bontibon/refresh-go-workshop/snakes"
 	"github.com/gorilla/websocket"
 )
 
@@ -19,7 +18,7 @@ type ServerConn struct {
 	direction int32
 }
 
-var _ snakes.Client = (*ServerConn)(nil)
+var _ Client = (*ServerConn)(nil)
 
 func validBotName(name string) bool {
 	if len(name) == 0 {
@@ -74,11 +73,11 @@ func (s *ServerConn) ID() string {
 	return s.name
 }
 
-func (s *ServerConn) Direction() snakes.Direction {
-	return snakes.Direction(atomic.LoadInt32(&s.direction))
+func (s *ServerConn) Direction() Direction {
+	return Direction(atomic.LoadInt32(&s.direction))
 }
 
 // SendMessage sends the message to the client.
-func (s *ServerConn) SendMessage(msg *snakes.Message) error {
+func (s *ServerConn) SendMessage(msg *Message) error {
 	return s.c.WriteJSON(msg)
 }

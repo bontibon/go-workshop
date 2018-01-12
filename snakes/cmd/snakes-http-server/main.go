@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/bontibon/refresh-go-workshop/snakes"
-	snakewebsocket "github.com/bontibon/refresh-go-workshop/snakes/websocket"
 	"github.com/gorilla/websocket"
 )
 
@@ -48,7 +47,7 @@ func main() {
 
 		log.Printf("Viewer connected (%s)", conn.RemoteAddr())
 
-		client, err := snakewebsocket.NewViewerConn(conn)
+		client, err := snakes.NewViewerConn(conn)
 		if err != nil {
 			log.Printf("could not create conn: %s", err)
 			return
@@ -74,7 +73,7 @@ func main() {
 
 		log.Printf("Client connected (%s)", conn.RemoteAddr())
 
-		client, err := snakewebsocket.NewServerConn(conn, r)
+		client, err := snakes.NewServerConn(conn, r)
 		if err != nil {
 			log.Printf("could not create conn: %s", err)
 			return

@@ -83,12 +83,12 @@ func NextLocation(base Location, direction Direction) Location {
 	return base
 }
 
-// LocationPair is a pair of two locations.
-type LocationPair [2]Location
+// locationPair is a pair of two locations.
+type locationPair [2]Location
 
 // Swap returns a copy of the location pair with the items swapped.
-func (l LocationPair) Swap() LocationPair {
-	return LocationPair{l[1], l[0]}
+func (l locationPair) Swap() locationPair {
+	return locationPair{l[1], l[0]}
 }
 
 type Snake struct {
@@ -236,7 +236,7 @@ func (s *State) Next(snakeDirections []Direction) *State {
 	next, maxLength := s.clone()
 
 	tails := make(map[Location]int, len(next.Snakes)*maxLength)
-	headLocations := make(map[LocationPair]int, len(next.Snakes))
+	headLocations := make(map[locationPair]int, len(next.Snakes))
 	nextHeadLocations := make(map[Location]int, len(next.Snakes))
 	repositionApple := false
 
@@ -256,7 +256,7 @@ func (s *State) Next(snakeDirections []Direction) *State {
 			snake.Pieces[i] = snake.Pieces[i-1]
 			tails[snake.Pieces[i]] = snakeNo
 		}
-		locPair := LocationPair{snake.Pieces[0], nextLocation}
+		locPair := locationPair{snake.Pieces[0], nextLocation}
 		snake.Pieces[0] = nextLocation
 		if !nextLocation.IsInsideBounds(next.Width, next.Height) {
 			// collided with wall

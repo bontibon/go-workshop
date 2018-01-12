@@ -6,17 +6,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ViewerConn struct {
+type WebSocketViewer struct {
 	c *websocket.Conn
 }
 
-func NewViewerConn(conn *websocket.Conn) (*ViewerConn, error) {
-	return &ViewerConn{
+func NewWebSocketViewer(conn *websocket.Conn) (*WebSocketViewer, error) {
+	return &WebSocketViewer{
 		c: conn,
 	}, nil
 }
 
-func (v *ViewerConn) Run() error {
+var _ ViewerClient = (*WebSocketViewer)(nil)
+
+func (v *WebSocketViewer) Run() error {
 	for {
 		var val interface{}
 
@@ -31,6 +33,6 @@ func (v *ViewerConn) Run() error {
 }
 
 // SendMessage sends the message to the client.
-func (v *ViewerConn) SendMessage(msg *Message) error {
+func (v *WebSocketViewer) SendMessage(msg *Message) error {
 	return v.c.WriteJSON(msg)
 }

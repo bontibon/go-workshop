@@ -11,14 +11,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ServerConn struct {
+type WebSocketClient struct {
 	c    *websocket.Conn
 	name string
 
 	direction int32
 }
 
-var _ Client = (*ServerConn)(nil)
+var _ Client = (*WebSocketClient)(nil)
 
 func validBotName(name string) bool {
 	if len(name) == 0 {
@@ -33,13 +33,13 @@ func validBotName(name string) bool {
 	return true
 }
 
-func NewServerConn(conn *websocket.Conn, r *http.Request) (*ServerConn, error) {
+func NewWebSocketClient(conn *websocket.Conn, r *http.Request) (*WebSocketClient, error) {
 	snakeName := r.Header.Get("X-Snake-Name")
 	if !validBotName(snakeName) {
 		return nil, errors.New("invalid snake name")
 	}
 
-	c := &ServerConn{
+	c := &WebSocketClient{
 		c:    conn,
 		name: snakeName,
 	}
@@ -47,7 +47,7 @@ func NewServerConn(conn *websocket.Conn, r *http.Request) (*ServerConn, error) {
 	return c, nil
 }
 
-func (s *ServerConn) Run() error {
+func (s *WebSocketClient) Run() error {
 	for {
 		var msg ClientMessage
 		err := s.c.ReadJSON(&msg)
@@ -69,15 +69,15 @@ func (s *ServerConn) Run() error {
 	return nil
 }
 
-func (s *ServerConn) ID() string {
+func (s *WebSocketClient) ID() string {
 	return s.name
 }
 
-func (s *ServerConn) Direction() Direction {
+func (s *WebSocketClient) Direction() Direction {
 	return Direction(atomic.LoadInt32(&s.direction))
 }
 
 // SendMessage sends the message to the client.
-func (s *ServerConn) SendMessage(msg *Message) error {
+func (s *WebSocketClient) SendMessage(msg *Message) error {
 	return s.c.WriteJSON(msg)
 }

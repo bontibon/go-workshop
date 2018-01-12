@@ -47,7 +47,7 @@ func main() {
 
 		log.Printf("Viewer connected (%s)", conn.RemoteAddr())
 
-		client, err := snakes.NewViewerConn(conn)
+		client, err := snakes.NewWebSocketViewer(conn)
 		if err != nil {
 			log.Printf("could not create conn: %s", err)
 			return
@@ -73,7 +73,7 @@ func main() {
 
 		log.Printf("Client connected (%s)", conn.RemoteAddr())
 
-		client, err := snakes.NewServerConn(conn, r)
+		client, err := snakes.NewWebSocketClient(conn, r)
 		if err != nil {
 			log.Printf("could not create conn: %s", err)
 			return

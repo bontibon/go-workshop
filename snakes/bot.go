@@ -149,8 +149,8 @@ type BotRound struct {
 // Turns returns a channel of *BotTurns. A BotTurn is sent on the channel when the
 // next tick of the game is received from the server.
 //
-// The returned channel is closed when the round is over or the connection
-// to the server is closed.
+// The returned channel is closed when the round is over, your snake dies, or the
+// connection to the server is closed.
 func (b *BotRound) Turns() <-chan *BotTurn {
 	return b.turns
 }

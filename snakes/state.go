@@ -110,7 +110,7 @@ func (s *Snake) HasPieceAt(x, y int) bool {
 	return false
 }
 
-// Apple is a game item that cases a snake to grow in length.
+// Apple is a game item that causes a snake to grow in length.
 type Apple struct {
 	Location `json:"location"`
 }

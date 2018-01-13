@@ -60,11 +60,8 @@ func (w *WebSocketBot) reader() {
 			if err != io.ErrUnexpectedEOF {
 				w.mu.Lock()
 				if currentRound != nil {
-					currentRound.mu.Lock()
-					currentRound.roundOver = true
-					currentRound.mu.Unlock()
-
 					close(currentRound.turns)
+					close(currentRound.winner)
 				}
 				w.err = err
 				w.mu.Unlock()
@@ -80,7 +77,8 @@ func (w *WebSocketBot) reader() {
 				currentRound = &BotRound{
 					w: w,
 
-					turns: make(chan *BotTurn),
+					turns:  make(chan *BotTurn),
+					winner: make(chan string, 1),
 				}
 				w.rounds <- currentRound
 			}
@@ -90,12 +88,11 @@ func (w *WebSocketBot) reader() {
 				r: currentRound,
 			}
 		case msg.RoundOverMessage != nil:
-			currentRound.mu.Lock()
-			currentRound.roundOver = true
-			currentRound.winner = msg.RoundOverMessage.Winner
-			currentRound.mu.Unlock()
-
 			close(currentRound.turns)
+			if msg.RoundOverMessage.Winner != nil {
+				currentRound.winner <- *msg.RoundOverMessage.Winner
+			}
+			close(currentRound.winner)
 			currentRound = nil
 		default:
 		}
@@ -126,11 +123,8 @@ func (w *WebSocketBot) Rounds() <-chan *BotRound {
 type BotRound struct {
 	w *WebSocketBot
 
-	turns chan *BotTurn
-
-	mu        sync.Mutex
-	roundOver bool
-	winner    *string
+	turns  chan *BotTurn
+	winner chan string
 }
 
 // Turns returns a channel of *BotTurns. A BotTurn is sent on the channel when the
@@ -142,17 +136,10 @@ func (b *BotRound) Turns() <-chan *BotTurn {
 	return b.turns
 }
 
-// Winner returns the name of the winner of the round. nil is returned if no player
-// won the round (i.e. the remaining players died at the same time).
-//
-// Winner panics if the round is not yet over.
-func (b *BotRound) Winner() *string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if !b.roundOver {
-		panic("round is not over")
-	}
-
+// Winner returns a channel on which the round winner will be sent. The channel is closed
+// without a name sent if no player won the round (i.e. the remaining players died at
+// the same time).
+func (b *BotRound) Winner() <-chan string {
 	return b.winner
 }
 

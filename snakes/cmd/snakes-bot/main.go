@@ -37,8 +37,8 @@ func main() {
 			turn.Move(snakes.DirectionEast)
 		}
 
-		if winner := round.Winner(); winner != nil {
-			log.Printf("%s won the round\n", *winner)
+		if winner, someoneWon := <-round.Winner(); someoneWon {
+			log.Printf("%s won the round\n", winner)
 		} else {
 			log.Println("Round over, and there was no winner")
 		}

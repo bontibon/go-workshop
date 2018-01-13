@@ -60,7 +60,9 @@ func (w *WebSocketBot) reader() {
 			if err != io.ErrUnexpectedEOF {
 				w.mu.Lock()
 				if currentRound != nil {
-					close(currentRound.turns)
+					if !currentRound.died {
+						close(currentRound.turns)
+					}
 					close(currentRound.winner)
 				}
 				w.err = err
@@ -82,13 +84,29 @@ func (w *WebSocketBot) reader() {
 				}
 				w.rounds <- currentRound
 			}
-			currentRound.turns <- &BotTurn{
-				RoundStateMessage: msg.RoundStateMessage,
+			if currentRound.died {
+				break
+			}
 
-				r: currentRound,
+			for _, player := range msg.RoundStateMessage.Players {
+				if player.Name == w.name {
+					if len(player.Pieces) > 0 {
+						currentRound.turns <- &BotTurn{
+							RoundStateMessage: msg.RoundStateMessage,
+
+							r: currentRound,
+						}
+					} else {
+						currentRound.died = true
+						close(currentRound.turns)
+					}
+					break
+				}
 			}
 		case msg.RoundOverMessage != nil:
-			close(currentRound.turns)
+			if !currentRound.died {
+				close(currentRound.turns)
+			}
 			if msg.RoundOverMessage.Winner != nil {
 				currentRound.winner <- *msg.RoundOverMessage.Winner
 			}
@@ -123,6 +141,7 @@ func (w *WebSocketBot) Rounds() <-chan *BotRound {
 type BotRound struct {
 	w *WebSocketBot
 
+	died   bool
 	turns  chan *BotTurn
 	winner chan string
 }

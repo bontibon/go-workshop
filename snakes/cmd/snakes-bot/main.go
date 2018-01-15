@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"log"
 
 	"github.com/bontibon/go-workshop/snakes"
@@ -14,14 +16,14 @@ func main() {
 	// The first character of your name will be displayed on you bot's head.
 	// Emojis are supported! https://emojipedia.org
 	// TODO: change me!
-	const name = "BotName"
+	name := "Bot-" + RandomName()
 
 	bot, err := snakes.NewWebSocketBot(addr, name)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer bot.Close()
-	log.Printf("Connected to the server; waiting for a new round")
+	log.Printf("Connected to the server as %s; waiting for a new round", name)
 
 	for round := range bot.Rounds() {
 		log.Println("New round started")
@@ -47,4 +49,12 @@ func main() {
 	if err := bot.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func RandomName() string {
+	var b [3]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b[:])
 }

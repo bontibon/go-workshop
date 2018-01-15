@@ -69,6 +69,7 @@
             "#ffac93"
         ];
 
+        var ws;
         var board = document.getElementById('board');
         var ctx = board.getContext("2d");
 
@@ -110,15 +111,23 @@
             ctx.canvas.width = w;
             ctx.canvas.height = h;
 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#1d1d1d';
+                renderFullWidthText('Connecting...', w, h);
+                return;
+            }
+
             var msg = lastMessage;
             if (msg === null) {
                 ctx.fillStyle = '#e2e2e2';
                 ctx.fillRect(0, 0, w, h);
                 return;
             }
-
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
 
             if (typeof msg.waiting === 'object' && msg.waiting !== null) {
                 // Waiting for round to start
@@ -201,17 +210,24 @@
         };
 
         var wsURL = 'ws://' + window.location.host + '/viewer/ws';
-        var ws = new WebSocket(wsURL);
-        ws.addEventListener('message', function(ev) {
-            var msg = JSON.parse(ev.data);
-            lastMessage = msg;
-            window.requestAnimationFrame(renderBoard);
-        });
-        ws.addEventListener('close', function(ev) {
-            console.log(ev);
-            board.parentNode.removeChild(board);
-            document.body.style.background = '#9f0000';
-        });
+        var connectWebSocket;
+        connectWebSocket = function() {
+            ws = new WebSocket(wsURL);
+            ws.addEventListener('open', function(ev) {
+                window.requestAnimationFrame(renderBoard);
+            });
+            ws.addEventListener('message', function(ev) {
+                lastMessage = JSON.parse(ev.data);
+                window.requestAnimationFrame(renderBoard);
+            });
+            ws.addEventListener('close', function(ev) {
+                setTimeout(function() {
+                    connectWebSocket();
+                }, 2000);
+                window.requestAnimationFrame(renderBoard);
+            });
+        };
+        connectWebSocket();
 
         window.addEventListener("resize", function() {
             window.requestAnimationFrame(renderBoard);

@@ -57,6 +57,9 @@ type RoundStateMessage struct {
 	Players []*RoundStateMessagePlayer `json:"players"`
 
 	Apple Apple `json:"apple"`
+
+	// Number of seconds remaining in the round. nil if there is no time limit.
+	SecondsRemaining *int `json:"seconds_remaining,omitempty"`
 }
 
 // RoundStateMessagePlayer is a player in the round.

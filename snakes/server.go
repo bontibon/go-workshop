@@ -2,6 +2,7 @@ package snakes
 
 import (
 	"errors"
+	"math"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -46,6 +47,8 @@ type ServerConfig struct {
 	// Amount of time to wait after enough clients joining and the beginning of
 	// the round.
 	PreRoundWait time.Duration
+	// Maximum number of seconds in a round. If unset, there is no time limit.
+	RoundDuration time.Duration
 	// Amount of time to wait after a round before preparing for another round.
 	PostRoundWait time.Duration
 	// Duration of a round tick. This should be large enough for clients to
@@ -163,23 +166,54 @@ func (s *Server) Run() {
 			InitialSnakeLength: 5,
 		}
 		gameState := NewState(cfg)
-		s.broadcast(&Message{
+
+		var roundEndTime time.Time
+		var roundLimitTimer *time.Timer
+		if s.config.RoundDuration > 0 {
+			roundEndTime = time.Now().Add(s.config.RoundDuration)
+			roundLimitTimer = time.NewTimer(s.config.RoundDuration)
+		} else {
+			roundLimitTimer = time.NewTimer(math.MaxInt64)
+		}
+
+		msg := &Message{
 			RoundStateMessage: roundStateMessageFromState(roundClients, gameState),
-		}, roundClients...)
+		}
+		if !roundEndTime.IsZero() {
+			msg.RoundStateMessage.SecondsRemaining = new(int)
+			*msg.RoundStateMessage.SecondsRemaining = int(roundEndTime.Sub(time.Now())/time.Second) + 1
+		}
+		s.broadcast(msg, roundClients...)
 
 		directions := make([]Direction, len(roundClients))
 		ticker := time.NewTicker(s.config.RoundTick)
+
+	gameLoop:
 		for {
-			<-ticker.C
+			select {
+			case <-ticker.C:
+			case <-roundLimitTimer.C:
+				s.broadcast(&Message{
+					RoundOverMessage: &RoundOverMessage{},
+				}, roundClients...)
+				roundLimitTimer.Stop()
+				time.Sleep(s.config.PostRoundWait)
+				break gameLoop
+			}
 
 			for i, client := range roundClients {
 				directions[i] = client.Direction()
 			}
 
 			gameState = gameState.Next(directions)
-			s.broadcast(&Message{
+			msg := &Message{
 				RoundStateMessage: roundStateMessageFromState(roundClients, gameState),
-			}, roundClients...)
+			}
+			if !roundEndTime.IsZero() {
+				msg.RoundStateMessage.SecondsRemaining = new(int)
+				*msg.RoundStateMessage.SecondsRemaining = int(roundEndTime.Sub(time.Now())/time.Second) + 1
+			}
+			s.broadcast(msg, roundClients...)
 
 			if completed, winner := gameState.IsCompleted(); completed {
 				rom := &RoundOverMessage{}
@@ -190,6 +224,7 @@ func (s *Server) Run() {
 				s.broadcast(&Message{
 					RoundOverMessage: rom,
 				}, roundClients...)
+				roundLimitTimer.Stop()
 				time.Sleep(s.config.PostRoundWait)
 				break
 			}

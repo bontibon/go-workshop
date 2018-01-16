@@ -15,6 +15,7 @@ import (
 func main() {
 	minimumClients := flag.Int("minimum-clients", 2, "minimum number of clients needed to start a round")
 	preRoundWait := flag.Duration("pre-round-wait", time.Second*2, "pre round wait time")
+	roundDuration := flag.Duration("round-duration", time.Second*30, "maximum round time")
 	roundTick := flag.Duration("round-tick", time.Millisecond*200, "round tick duration")
 	postRoundWait := flag.Duration("post-round-wait", time.Second*2, "post round wait time")
 	addr := flag.String("addr", "127.0.0.1:8080", "HTTP address to listen on")
@@ -23,6 +24,7 @@ func main() {
 	serverConfig := snakes.ServerConfig{
 		MinimumClients: *minimumClients,
 		PreRoundWait:   *preRoundWait,
+		RoundDuration:  *roundDuration,
 		RoundTick:      *roundTick,
 		PostRoundWait:  *postRoundWait,
 	}

@@ -68,6 +68,16 @@ type RoundStateMessagePlayer struct {
 	Pieces []Location `json:"pieces"`
 }
 
+// IsAt returns if any of the player's pieces is at the given location.
+func (p *RoundStateMessagePlayer) IsAt(l Location) bool {
+	for _, piece := range p.Pieces {
+		if piece == l {
+			return true
+		}
+	}
+	return false
+}
+
 // roundStateMessageFromState creates a RoundStateMessage from the given clients
 // and game state.
 func roundStateMessageFromState(clients []Client, s *State) *RoundStateMessage {

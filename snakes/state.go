@@ -100,10 +100,10 @@ type Snake struct {
 	Pieces []Location // Pieces[0] is the head of the snake
 }
 
-// HasPieceAt returns if the snake has a piece at the given coordinates.
-func (s *Snake) HasPieceAt(x, y int) bool {
+// IsAt returns if the snake has a piece at the given location.
+func (s *Snake) IsAt(l Location) bool {
 	for _, piece := range s.Pieces {
-		if piece.X == x && piece.Y == y {
+		if piece == l {
 			return true
 		}
 	}
@@ -113,6 +113,11 @@ func (s *Snake) HasPieceAt(x, y int) bool {
 // Apple is a game item that causes a snake to grow in length.
 type Apple struct {
 	Location `json:"location"`
+}
+
+// IsAt returns if the apple is at the given location.
+func (a Apple) IsAt(l Location) bool {
+	return a.Location == l
 }
 
 // StateConfig is the configuration for creating an initial game state.
@@ -194,7 +199,7 @@ func GenerateAppleLocation(width, height int, snakes []*Snake) Location {
 
 		ok := true
 		for _, snake := range snakes {
-			if snake.HasPieceAt(x, y) {
+			if snake.IsAt(Location{x, y}) {
 				ok = false
 				break
 			}

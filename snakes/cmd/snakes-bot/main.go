@@ -36,7 +36,7 @@ func main() {
 			//
 			//
 			// Control your bot with turn.Move. Example:
-			turn.Move(snakes.DirectionEast)
+			turn.Move(snakes.DirectionNorth)
 		}
 
 		if winner, someoneWon := <-round.Winner(); someoneWon {

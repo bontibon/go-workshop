@@ -60,10 +60,10 @@ func (w *WebSocketBot) reader() {
 			if err != io.ErrUnexpectedEOF {
 				w.mu.Lock()
 				if currentRound != nil {
+					close(currentRound.winner)
 					if !currentRound.died {
 						close(currentRound.turns)
 					}
-					close(currentRound.winner)
 				}
 				w.err = err
 				w.mu.Unlock()
@@ -104,13 +104,13 @@ func (w *WebSocketBot) reader() {
 				}
 			}
 		case msg.RoundOverMessage != nil:
-			if !currentRound.died {
-				close(currentRound.turns)
-			}
 			if msg.RoundOverMessage.Winner != nil {
 				currentRound.winner <- *msg.RoundOverMessage.Winner
 			}
 			close(currentRound.winner)
+			if !currentRound.died {
+				close(currentRound.turns)
+			}
 			currentRound = nil
 		default:
 		}

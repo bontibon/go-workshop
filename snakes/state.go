@@ -319,3 +319,30 @@ func (s *State) IsCompleted() (bool, int) {
 
 	return alive >= 0 || nonAlive, alive
 }
+
+// LongestSnake returns the snake number that is the longest. Returns false
+// if there is not a single longest snake.
+func (s *State) LongestSnake() (int, bool) {
+	longestNo := 0
+	longest := 0
+	longestCount := 0
+
+	for snakeNo, snake := range s.Snakes {
+		if !snake.Alive {
+			continue
+		}
+
+		if len(snake.Pieces) > longest {
+			longestNo = snakeNo
+			longest = len(snake.Pieces)
+			longestCount = 1
+		} else if len(snake.Pieces) == longest {
+			longestCount++
+		}
+	}
+
+	if longestCount == 1 {
+		return longestNo, true
+	}
+	return 0, false
+}

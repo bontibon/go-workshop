@@ -193,8 +193,13 @@ func (s *Server) Run() {
 			select {
 			case <-ticker.C:
 			case <-roundLimitTimer.C:
+				rom := &RoundOverMessage{}
+				if winner, ok := gameState.LongestSnake(); ok {
+					rom.Winner = new(string)
+					*rom.Winner = roundClients[winner].ID()
+				}
 				s.broadcast(&Message{
-					RoundOverMessage: &RoundOverMessage{},
+					RoundOverMessage: rom,
 				}, roundClients...)
 				roundLimitTimer.Stop()
 				time.Sleep(s.config.PostRoundWait)

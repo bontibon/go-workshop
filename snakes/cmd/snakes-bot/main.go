@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// Server address
-	const addr = "ws://127.0.0.1:8080/ws"
+	const addr = "ws://131.162.18.57:8000/ws"
 
 	// Bot name
 	// The first character of your name will be displayed on you bot's head.

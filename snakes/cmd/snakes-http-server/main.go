@@ -35,12 +35,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/viewer", func(w http.ResponseWriter, r *http.Request) {
-		viewer, err := ioutil.ReadFile("viewer.html")
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		w.Write(viewer)
+		http.ServeFile(w, r, "viewer.html")
 	})
 
 	upgrader := websocket.Upgrader{

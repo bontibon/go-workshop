@@ -36,7 +36,28 @@ func main() {
 			//
 			//
 			// Control your bot with turn.Move. Example:
-			turn.Move(snakes.DirectionNorth)
+			// turn.Move(snakes.DirectionNorth)
+
+			// Find your bot's location
+			var loc snakes.Location
+			for _, player := range turn.Players {
+				if player.Name == name {
+					loc = player.Pieces[0]
+					break
+				}
+			}
+
+			// Target the apple
+			// TODO: adapt so you do not move your bot into a location where another player already is
+			if loc.X < turn.Apple.X {
+				turn.Move(snakes.DirectionEast)
+			} else if loc.X > turn.Apple.X {
+				turn.Move(snakes.DirectionWest)
+			} else if loc.Y < turn.Apple.Y {
+				turn.Move(snakes.DirectionSouth)
+			} else {
+				turn.Move(snakes.DirectionNorth)
+			}
 		}
 
 		if winner, someoneWon := <-round.Winner(); someoneWon {
